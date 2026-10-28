@@ -9,7 +9,12 @@ Milwaukee Tool logo with a procedural, never-quite-repeating animation.
   a **hold** of roughly 9–20 s with random glitch bursts (tear, RGB split, bolt flicker, jitter, bolt zap,
   rare color invert), and an **exit** (glitch out / reverse mask wipe / CRT power-off). No entrance or exit
   plays twice in a row.
-- **Up** = play/pause (pause snaps to the plain logo and holds it). **Back** exits.
+- Five buttons: Up, Down, Left, Right, Select (Select doubles as back).
+  - **Left/Right**: previous/next screen (logo, five product cards, level). On the contact QR they switch LinkedIn/GitHub.
+  - **Up**: play/pause on the logo (pause snaps to the plain logo); QR on a card; zero on the level.
+  - **Down**: contact QR on the logo, product QR on a card.
+  - **Select**: close a QR, else go to the logo; on the logo it exits to the menu.
+  - Returns to the logo after 25 s idle. Level bubble direction is uncalibrated (`LEVEL_SX/LEVEL_SY`).
 - Optional menu patch: first tile, Milwaukee red, big logo icon.
 
 ## Install
