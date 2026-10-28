@@ -20,6 +20,10 @@ for _ in $(seq 20); do [ -d /Volumes/BADGER ] && break; sleep 1; done
 
 mkdir -p /Volumes/BADGER/apps/milwaukee
 cp app/milwaukee/__init__.py /Volumes/BADGER/apps/milwaukee/__init__.py
+if ls assets/products/*.png >/dev/null 2>&1; then
+  mkdir -p /Volumes/BADGER/apps/milwaukee/products
+  cp assets/products/*.png /Volumes/BADGER/apps/milwaukee/products/
+fi
 if [ "${1:-}" = "--menu" ]; then
   # refuse to patch a menu that isn't the one the patch was built from
   cmp -s menu_patch/app.py.orig /Volumes/BADGER/apps/menu/app.py \

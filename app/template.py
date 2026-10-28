@@ -1,9 +1,12 @@
 # Milwaukee Tool logo for the GitHub Universe badge: a procedural, never-quite-repeating cycle.
 # Each cycle randomly composes an entrance, a hold with glitch bursts, and an exit.
-# Up = play/pause, Back exits.
+# Left/Right = screens (logo, product cards, level), Down = QR, Select = context action,
+# Up = play/pause, Back = close QR / go home / exit.
 import math
 import random
 from array import array
+
+import missing_details
 
 badge.mode(HIRES | VSYNC)
 previous_clear = badge.default_clear
@@ -14,6 +17,11 @@ screen.fill_rule = image.NON_ZERO
 LOGO_W = __W__
 # 0: registered mark, 1: lightning bolt, 2-3: "Milwaukee" lettering
 LOGO = __DATA__
+
+# (image slug, name, category, SKU) for the product cards; the QR links to milwaukeetool.com/products/<SKU>
+PRODUCTS = __PRODUCTS__
+PRODUCT_DIR = "/system/apps/milwaukee/products/"
+ROLE = "Staff Software Engineer"
 
 WIDTH, HEIGHT = 320, 240
 FIT = 276 / LOGO_W
@@ -346,25 +354,268 @@ def draw(plan, r):
             crt_off(k)
 
 
+# ---- UI layer: animated logo, product cards, level; QR overlays ----
+
+title_font = font.ignore
+body_font = missing_details.mona_sans()
+GRAY = (95, 95, 95)
+
+LEVEL = len(PRODUCTS) + 1      # screens: 0 logo, 1..n product cards, n+1 level
+SCREEN_COUNT = LEVEL + 1
+TRANS_MS = 420
+IDLE_MS = 25000                # return to the logo after this long without a button press
+IDLE_QR_MS = 60000
+HINT_MS = 3000
+ICON_MS = 1200
+LEVEL_SX = 1                   # flip to -1 if the bubble moves the wrong way
+LEVEL_SY = 1
+
+
+def setting_or(key, default):
+    try:
+        value = setting(key)
+        return value if value else default
+    except Exception:
+        return default
+
+
+def measure(text, size=None):
+    return screen.measure_text(text, font_size=size) if size else screen.measure_text(text)
+
+
+def fit(text, width, size=None):
+    while text and measure(text, size)[0] > width:
+        text = text[:-1]
+    return text
+
+
+def put(text, x, y, rgb, a=1.0, size=None, face=None):
+    screen.font = face or body_font
+    screen.pen = pen(rgb, a)
+    if size:
+        screen.text(text, x, y, size)
+    else:
+        screen.text(text, x, y)
+
+
+def put_centred(text, y, rgb, a=1.0, size=None, face=None, maxw=300):
+    screen.font = face or body_font
+    text = fit(text, maxw, size)
+    width, _ = measure(text, size)
+    put(text, (WIDTH - width) / 2, y, rgb, a, size, face)
+
+
+def logo_at(cx, cy, width, rgb, a=1.0):
+    k = width / LOGO_W
+    for p in (WA, WB, BOLT, MARK):
+        p.transform = mat3().translate(vec2(cx, cy)).scale(k, k)
+        screen.pen = pen(rgb, a)
+        screen.shape(p)
+
+
+_images = {}
+
+
+def product_image(slug):
+    if slug not in _images:
+        try:
+            _images[slug] = image.load(PRODUCT_DIR + slug + ".png")
+        except Exception:
+            _images[slug] = None
+    return _images[slug]
+
+
+def hint(text, a):
+    if a > 0:
+        put_centred(text, 226, W, a * .75, 11)
+
+
+def draw_card(i, hint_a):
+    slug, name, cat, sku = PRODUCTS[i]
+    fill(R)
+    logo_at(46, 17, 72, W)
+    for k in range(len(PRODUCTS)):
+        screen.pen = pen(W, 1.0 if k == i else .45)
+        screen.shape(shape.circle(WIDTH - 14 - (len(PRODUCTS) - 1 - k) * 12, 17, 4 if k == i else 3))
+    screen.pen = pen(W)
+    screen.shape(shape.rounded_rectangle(14, 34, 292, 142, 10))
+    im = product_image(slug)
+    if im is not None:
+        x = 160 - im.width // 2
+        y = 105 - im.height // 2
+        screen.blit(im, rect(0, 0, im.width, im.height), rect(x, y, im.width, im.height))
+    else:
+        put_centred(name, 96, GRAY, size=14)
+    screen.font = title_font
+    put(fit(name, 292), 14, 176, W, face=title_font)
+    put(fit(cat, 292, 14), 14, 205, W, .88, 14)
+    hint("< > browse     v QR", hint_a)
+
+
+def draw_qr(title, sub, url, tag):
+    fill(W)
+    q = image.qr(url, image.QR_LOW, 2)
+    scale = max(1, 166 // q.width)
+    size = q.width * scale
+    screen.blit(q, rect(0, 0, q.width, q.height), rect((WIDTH - size) // 2, 6 + (166 - size) // 2, size, size))
+    put_centred(title, 176, K, face=title_font)
+    put_centred(sub, 205, GRAY, size=13)
+    put_centred(tag, 222, (140, 140, 140), size=10)
+    screen.pen = pen(R)
+    screen.shape(shape.rectangle(0, HEIGHT - 6, WIDTH, 6))
+
+
+def draw_contact_qr():
+    li = contact_qr == 0
+    handle = setting_or("CONTACT_LINKEDIN" if li else "GITHUB_USERNAME", "nquandt")
+    url = ("https://www.linkedin.com/in/" if li else "https://github.com/") + handle
+    draw_qr(setting_or("CONTACT_NAME", "Nicholas Quandt"), ROLE, url,
+            ("LinkedIn" if li else "GitHub") + " - " + handle + "     SELECT switches")
+
+
+def draw_product_qr(i):
+    slug, name, cat, sku = PRODUCTS[i]
+    draw_qr(name, cat, "https://www.milwaukeetool.com/products/" + sku, "milwaukeetool.com/products/" + sku + "     BACK returns")
+
+
+tilt_x = tilt_y = 0.0
+zero_x = zero_y = 0.0
+
+
+def read_tilt():
+    global tilt_x, tilt_y
+    ax, ay, az = badge.imu()[:3]
+    g = math.sqrt(ax * ax + ay * ay + az * az) or 1.0
+    rx = math.degrees(math.asin(max(-1.0, min(1.0, ax / g))))
+    ry = math.degrees(math.asin(max(-1.0, min(1.0, ay / g))))
+    tilt_x += (rx - tilt_x) * .25
+    tilt_y += (ry - tilt_y) * .25
+
+
+def draw_level(hint_a):
+    read_tilt()
+    dx = (tilt_x - zero_x) * LEVEL_SX
+    dy = (tilt_y - zero_y) * LEVEL_SY
+    ang = math.sqrt(dx * dx + dy * dy)
+    level = ang < 1.0
+    fill(R)
+    cx, cy, rad = 160, 100, 68
+    screen.pen = pen(W)
+    screen.shape(shape.stroke(shape.circle(cx, cy, rad), 3))
+    screen.pen = pen(W, .45)
+    screen.shape(shape.stroke(shape.circle(cx, cy, rad // 2), 1.5))
+    screen.shape(shape.rectangle(cx - rad, cy, rad * 2, 1))
+    screen.shape(shape.rectangle(cx, cy - rad, 1, rad * 2))
+    screen.pen = pen(W)
+    screen.shape(shape.stroke(shape.circle(cx, cy, 16), 3))
+    reach = rad - 14
+    bx, by = cx + dx / 25 * reach, cy + dy / 25 * reach
+    d = math.sqrt((bx - cx) ** 2 + (by - cy) ** 2)
+    if d > reach:
+        bx, by = cx + (bx - cx) * reach / d, cy + (by - cy) * reach / d
+    screen.pen = pen(Y if level else W, .95)
+    screen.shape(shape.circle(bx, by, 12))
+    put_centred("%.1f" % ang, cy + rad + 12, W, face=title_font)
+    put_centred("LEVEL" if level else "TILT", cy + rad + 42, W, .9, 12)
+    logo_at(46, 17, 72, W)
+    hint("< > browse     SELECT zeroes", hint_a)
+
+
+def draw_logo_screen(now, hint_a):
+    global cycle, current, cycle_start
+    if paused:
+        fill(R)
+        everything(W)
+    else:
+        r = now - cycle_start
+        if r >= current[6]:
+            cycle_start += current[6]
+            cycle += 1
+            current = make_plan(cycle, current)
+            r = now - cycle_start
+        draw(current, r)
+    age = now - impact_at
+    if 0 <= age < 700:               # Select: on-demand impact (shockwave + flash)
+        k = clamp(age / 700)
+        screen.pen = pen(W, 1 - k)
+        screen.shape(shape.stroke(shape.circle(CX, CY, age * .6), 5 * (1 - k) + .5))
+        if age < 300:
+            fill(W, .7 * (1 - age / 300))
+    draw_icon(now)
+    hint("< > browse   v contact QR   ^ pause   o impact", hint_a)
+
+
+def draw_screen(idx, now, hint_a):
+    if qr_open and idx == 0:
+        draw_contact_qr()
+    elif qr_open and 1 <= idx <= len(PRODUCTS):
+        draw_product_qr(idx - 1)
+    elif idx == 0:
+        draw_logo_screen(now, hint_a)
+    elif idx == LEVEL:
+        draw_level(hint_a)
+    else:
+        draw_card(idx - 1, hint_a)
+
+
+def band(p):
+    """Red slanted wipe: covers the old screen left to right, then uncovers the new one."""
+    far = WIDTH + 90
+    if p < .5:
+        a, b = -90, -90 + (far + 90) * ease_out(p / .5)
+        lead_edge = b
+    else:
+        a, b = -90 + (far + 90) * ease_out((p - .5) / .5), far
+        lead_edge = a
+    poly(R, a + 30, 0, b + 30, 0, b - 30, HEIGHT, a - 30, HEIGHT)
+    screen.pen = pen(W, .9)
+    screen.shape(shape.custom(array("f", (lead_edge + 30, 0, lead_edge + 36, 0, lead_edge - 24, HEIGHT, lead_edge - 30, HEIGHT))))
+
+
 cycle = 0
 current = make_plan(0, None)
 cycle_start = badge.ticks
 
-# Up button: play / pause. Pause snaps to the plain logo and holds it; play resumes with the logo
-# continuing into a fresh cycle (hold, glitches, exit). A small icon confirms each press.
 paused = False
 icon_kind = 0       # 1 = pause bars, 2 = play triangle
 icon_until = 0
-ICON_MS = 1200
+
+screen_idx = 0
+qr_open = False
+contact_qr = 0      # 0 = LinkedIn, 1 = GitHub
+trans = None        # (start_ms, target_idx)
+last_input = badge.ticks
+hint_until = 0
+impact_at = -10000
+
+
+def pressed(name):
+    return badge.pressed(BUTTONS[name])
+
+
+BUTTONS = {"up": BUTTON_UP, "down": BUTTON_DOWN, "left": BUTTON_LEFT, "right": BUTTON_RIGHT,
+           "select": BUTTON_SELECT, "back": BUTTON_BACK}
+
+
+def start_logo(now):
+    """Arriving back at the logo: continue with the logo already up (start of a hold)."""
+    global cycle, current, cycle_start
+    cycle += 1
+    current = make_plan(cycle, current)
+    cycle_start = now - current[3]
+
+
+def go(target, now):
+    global trans, qr_open
+    qr_open = False
+    trans = (now, target)
 
 
 def toggle_pause(now):
-    global paused, cycle, current, cycle_start, icon_kind, icon_until
+    global paused, cycle_start, icon_kind, icon_until
     if paused:
         paused = False
-        cycle += 1
-        current = make_plan(cycle, current)
-        cycle_start = now - current[3]      # start at the end of the entrance: logo already up
+        start_logo(now)
         icon_kind = 2
     else:
         paused = True
@@ -384,23 +635,61 @@ def draw_icon(now):
         screen.shape(shape.custom(array("f", (286, 10, 305, 19, 286, 28))))
 
 
-def update():
-    global cycle, current, cycle_start
-    now = badge.ticks
-    if badge.pressed(BUTTON_UP):
+def handle_input(now):
+    global qr_open, contact_qr, impact_at, zero_x, zero_y, last_input, hint_until
+    if any(pressed(n) for n in BUTTONS):
+        last_input = now
+        hint_until = now + HINT_MS
+    if pressed("left") and not qr_open:
+        go((screen_idx - 1) % SCREEN_COUNT, now)
+    elif pressed("right") and not qr_open:
+        go((screen_idx + 1) % SCREEN_COUNT, now)
+    elif pressed("down") and screen_idx != LEVEL:
+        qr_open = not qr_open
+        contact_qr = 0
+    elif pressed("select"):
+        if screen_idx == 0:
+            if qr_open:
+                contact_qr ^= 1
+            else:
+                impact_at = now
+        elif screen_idx == LEVEL:
+            zero_x, zero_y = tilt_x, tilt_y
+    elif pressed("up") and screen_idx == 0 and not qr_open:
         toggle_pause(now)
-    if paused:
-        fill(R)
-        everything(W)
+    elif pressed("back"):
+        if qr_open:
+            qr_open = False
+        elif screen_idx != 0:
+            go(0, now)
+        else:
+            reset()
+    elif screen_idx != 0 or qr_open:
+        limit = IDLE_QR_MS if qr_open else IDLE_MS
+        if now - last_input > limit:
+            go(0, now)
+
+
+def update():
+    global trans, screen_idx
+    now = badge.ticks
+    if trans is None:
+        handle_input(now)
+    hint_a = clamp((hint_until - now) / 600)
+    if trans is not None:
+        p = (now - trans[0]) / TRANS_MS
+        if p >= .5 and screen_idx != trans[1]:
+            screen_idx = trans[1]
+            if screen_idx == 0 and not paused:
+                start_logo(now)
+        if p >= 1:
+            trans = None
+            draw_screen(screen_idx, now, hint_a)
+        else:
+            draw_screen(screen_idx, now, hint_a)
+            band(p)
     else:
-        r = now - cycle_start
-        if r >= current[6]:
-            cycle_start += current[6]
-            cycle += 1
-            current = make_plan(cycle, current)
-            r = now - cycle_start
-        draw(current, r)
-    draw_icon(now)
+        draw_screen(screen_idx, now, hint_a)
 
 
 def on_exit():
