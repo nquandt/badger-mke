@@ -52,16 +52,17 @@ th{color:var(--mut);font-weight:600}kbd{background:#333;color:#fff;border-radius
     <tr><th>Button</th><th>Logo</th><th>Product card</th><th>Level</th></tr>
     <tr><td>Left / Right</td><td colspan="3">Step through screens (logo → 5 cards → level → logo)</td></tr>
     <tr><td>Up</td><td>Play / pause animation</td><td>(unused)</td><td>(unused)</td></tr>
-    <tr><td>Down</td><td>Contact QR</td><td>QR to product page</td><td>(unused)</td></tr>
-    <tr><td>Select</td><td>Instant impact moment</td><td>(free)</td><td>(free)</td></tr>
+    <tr><td>Down</td><td>Contact QR (LinkedIn first)</td><td>QR to product page</td><td>(unused)</td></tr>
+    <tr><td>Select</td><td>Impact moment (on contact QR: switch LinkedIn / GitHub)</td><td>(free)</td><td>(free)</td></tr>
     <tr><td>Back</td><td colspan="3">Close a QR screen; otherwise exit the app</td></tr>
    </table></div>
   <div class="panel rec"><h2>Recommended five cards</h2>
    <p>Sawzall · Hole-Hawg · M18 FUEL Impact Driver · PACKOUT · MX FUEL. Heritage, the current workhorse, and the two systems people recognise on sight. Swap in the newest release (e.g. M18 FUEL SURGE) for any of them.</p></div>
   <div class="panel"><h2>Contact card</h2>
    <label>Name</label><input type="text" id="cName" value="Nicholas Quandt">
-   <label>Role</label><input type="text" id="cRole" value="[Your role]">
-   <label>QR points to</label><input type="text" id="cUrl" value="https://example.com/nick">
+   <label>Role</label><input type="text" id="cRole" value="Staff Software Engineer">
+   <label>LinkedIn handle</label><input type="text" id="cLi" value="nquandt">
+   <label>GitHub handle</label><input type="text" id="cGh" value="nquandt">
   </div>
   <div class="panel"><h2>Level (simulated tilt)</h2>
    <p>Move the pointer over the badge screen while on the Level screen, or use the sliders.</p>
@@ -81,7 +82,7 @@ const cl=v=>v<0?0:v>1?1:v,eo=t=>1-Math.pow(1-cl(t),3);
 const PRODUCTS=[{"slug": "impact", "name": "M18 FUEL Impact Driver", "cat": "1/4\" hex impact driver", "url": "https://www.milwaukeetool.com/products/details/m18-fuel-1-4-hex-impact-driver/2953-20"}, {"slug": "drill", "name": "M18 FUEL Drill/Driver", "cat": "1/2\" drill/driver", "url": "https://www.milwaukeetool.com/products/details/m18-fuel-1-2-drill-driver/2903-20"}, {"slug": "sawzall", "name": "M18 FUEL SAWZALL", "cat": "Reciprocating saw", "url": "https://www.milwaukeetool.com/products/details/m18-fuel-sawzall-recip-saw-w-one-key-tool-only/2822-20"}, {"slug": "packout", "name": "PACKOUT", "cat": "Rolling tool box", "url": "https://www.milwaukeetool.com/products/details/packout-rolling-tool-box/48-22-8426"}, {"slug": "jacket", "name": "M12 Heated Jacket", "cat": "Heated AXIS jacket", "url": "https://www.milwaukeetool.com/products/details/m12-heated-axis-quilted-jacket/m102b-21m"}];
 const IMGS={};PRODUCTS.forEach(p=>{const im=new Image();im.src='../assets/products/'+p.slug+'.png';IMGS[p.slug]=im;});
 const SCREENS=[{t:'logo',label:'Logo (home)',sub:'animated; shown static here'},...PRODUCTS.map((p,i)=>({t:'card',i,label:'Card: '+p.name,sub:p.cat})),{t:'level',label:'Level',sub:'bubble level from the tilt sensor'}];
-const st={idx:0,qr:false,paused:false,iconUntil:0,iconKind:0,trans:null,hintUntil:0,flashAt:-1e9,tx:8,ty:-5};
+const st={cq:0,idx:0,qr:false,paused:false,iconUntil:0,iconKind:0,trans:null,hintUntil:0,flashAt:-1e9,tx:8,ty:-5};
 const now=()=>performance.now();
 
 function logo(c,{cx=W/2,cy=H/2,s=1,fill=WHITE,a=1,dx=0,dy=0}={}){c.save();c.translate(cx+dx,cy+dy);c.scale(FIT*s,FIT*s);c.globalAlpha=a;c.fillStyle=fill;for(const p of P)c.fill(p,'nonzero');c.restore();}
@@ -130,16 +131,16 @@ function drawLevel(c,tx,ty,hintA){
   logo(c,{cx:44,cy:18,s:.28});
   hints(c,'◀ ▶ browse',hintA);
 }
-function drawQR(c,title,sub,url){
+function drawQR(c,title,sub,url,tag){
   c.fillStyle='#fff';c.fillRect(0,0,W,H);
   qrDraw(c,url,76,10,168);
   c.fillStyle='#000';c.textAlign='center';c.font=fit(c,title,300,'800 18px system-ui');c.fillText(fit(c,title,300,'800 18px system-ui'),160,200);
   c.fillStyle='#555';c.font=fit(c,sub,300,'13px system-ui');c.fillText(fit(c,sub,300,'13px system-ui'),160,218);
   c.fillStyle=RED;c.fillRect(0,H-6,W,6);
-  c.fillStyle='#888';c.font='10px system-ui';c.fillText('▼ or Back to return',160,H-10);
+  c.fillStyle='#888';c.font='10px system-ui';c.fillText(tag||'▼ or Back to return',160,H-10);
 }
 function drawScreen(c,sc,o){
-  if(sc.t==='logo'){if(o.qr)drawQR(c,document.getElementById('cName').value,document.getElementById('cRole').value+'  ·  Milwaukee Tool',document.getElementById('cUrl').value);else drawLogo(c,o.t,o.hint);}
+  if(sc.t==='logo'){if(o.qr){const li=st.cq===0,h=document.getElementById(li?'cLi':'cGh').value;drawQR(c,document.getElementById('cName').value,document.getElementById('cRole').value,(li?'https://www.linkedin.com/in/':'https://github.com/')+h,(li?'LinkedIn':'GitHub')+' · '+h+'   (● switch)');}else drawLogo(c,o.t,o.hint);}
   else if(sc.t==='card'){if(o.qr)drawQR(c,PRODUCTS[sc.i].name,PRODUCTS[sc.i].cat,PRODUCTS[sc.i].url);else drawCard(c,sc.i,o.hint);}
   else drawLevel(c,o.tx,o.ty,o.hint);
 }
@@ -162,7 +163,7 @@ function press(k){
   else if(k==='down'){if(sc.t!=='level')st.qr=!st.qr;}
   else if(k==='back'){st.qr=false;}
   else if(k==='up'){if(sc.t==='logo'&&!st.qr){st.paused=!st.paused;st.iconKind=st.paused?1:2;st.iconUntil=t+1200;}}
-  else if(k==='select'){if(sc.t==='logo'&&!st.qr)st.flashAt=t;}
+  else if(k==='select'){if(sc.t==='logo'){if(st.qr)st.cq^=1;else st.flashAt=t;}}
 }
 document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>press(b.dataset.k));
 addEventListener('keydown',e=>{const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'select',Escape:'back'}[e.key];if(m){e.preventDefault();press(m);}});
@@ -172,10 +173,10 @@ tx.oninput=ty.oninput=sliders;sliders();
 dev.addEventListener('pointermove',e=>{if(SCREENS[st.idx].t!=='level')return;const r=dev.getBoundingClientRect();st.tx=((e.clientX-r.left)/r.width-.5)*50;st.ty=((e.clientY-r.top)/r.height-.5)*50;tx.value=st.tx;ty.value=st.ty;document.getElementById('txv').textContent=st.tx.toFixed(1)+'°';document.getElementById('tyv').textContent=st.ty.toFixed(1)+'°';});
 // contact sheet
 const sheet=document.getElementById('sheet');
-const items=[];SCREENS.forEach((sc,i)=>{items.push({sc,i,qr:false,label:sc.label,sub:sc.sub});if(sc.t!=='level')items.push({sc,i,qr:true,label:sc.t==='logo'?'Contact QR':'QR: '+PRODUCTS[sc.i].name,sub:'press Down'});});
+const items=[];SCREENS.forEach((sc,i)=>{items.push({sc,i,qr:false,label:sc.label,sub:sc.sub});if(sc.t!=='level')items.push({sc,i,qr:true,label:sc.t==='logo'?'Contact QR (LinkedIn)':'QR: '+PRODUCTS[sc.i].name,sub:'press Down'});if(sc.t==='logo')items.push({sc,i,qr:true,cq:1,label:'Contact QR (GitHub)',sub:'press Down, then Select'});});
 items.forEach(it=>{const f=document.createElement('figure');f.innerHTML='<canvas width="320" height="240"></canvas><figcaption><b>'+it.label+'</b><br><span>'+it.sub+'</span></figcaption>';sheet.appendChild(f);it.ctx=f.querySelector('canvas').getContext('2d');
   f.onclick=()=>{st.idx=it.i;st.qr=it.qr;st.trans=null;scrollTo({top:0,behavior:'smooth'});};});
-function sheetDraw(){for(const it of items)drawScreen(it.ctx,it.sc,{t:now(),qr:it.qr,hint:1,tx:st.tx,ty:st.ty});}
+function sheetDraw(){const keep=st.cq;for(const it of items){st.cq=it.cq||0;drawScreen(it.ctx,it.sc,{t:now(),qr:it.qr,hint:1,tx:st.tx,ty:st.ty});}st.cq=keep;}
 sheetDraw();setInterval(sheetDraw,500);
 requestAnimationFrame(frame);
 </script></body></html>
