@@ -52,7 +52,7 @@ the user can always leave the app.
    edge up, then the top edge up. Needs `badge.poll()` before `badge.imu()` outside the app loop.
 3. Check glyph coverage of the fonts (`font.ignore`, `missing_details.mona_sans()`); avoid the degree sign and
    arrows unless verified. Verify the QR codes scan (`image.qr(url, image.QR_LOW, 2)`, integer scaling, white bg).
-4. `scripts/install.sh` already copies `assets/products/*.png` to `/system/apps/milwaukee/products/`. Run
+4. `scripts/install.sh` **on the WIP branch** copies `assets/products/*.png` (main's does not yet) to `/system/apps/milwaukee/products/`. Run
    `python3 tools/fetch_product_images.py && uv run --with pillow python tools/prep_images.py` first (images are
    gitignored: they are Milwaukee trademarks).
 5. Update the README button table and `preview/states_template.html` (mockup) to match the final 5-button design.
