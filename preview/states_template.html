@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Badge UI States</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root{--bg:#111;--fg:#eee;--mut:#9a9a9a;--card:#1c1c1c;--bd:#333;--red:#DB011C}
+@media (prefers-color-scheme: light){:root{--bg:#f3f3f3;--fg:#111;--mut:#555;--card:#fff;--bd:#ccc}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,sans-serif}
+header,section{max-width:1100px;margin:auto;padding:16px}
+h1{margin:0 0 4px;font-size:22px}h2{font-size:17px;margin:0 0 8px}
+p{margin:0 0 8px;color:var(--mut)}
+.top{display:grid;grid-template-columns:minmax(300px,520px) 1fr;gap:24px;align-items:start}
+@media(max-width:820px){.top{grid-template-columns:1fr}}
+.badge{background:#222;border:1px solid var(--bd);border-radius:18px;padding:16px;box-shadow:0 6px 24px #0006}
+.badge canvas{width:100%;aspect-ratio:4/3;display:block;border-radius:6px;background:#000}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;max-width:260px;margin-inline:auto}
+.pad button,.row button{background:#333;color:#fff;border:1px solid #555;border-radius:8px;padding:10px 0;font-size:15px;cursor:pointer}
+.pad button:hover,.row button:hover{border-color:var(--red)}
+.pad .sp{visibility:hidden}
+.row{display:flex;gap:8px;justify-content:center;margin-top:8px}.row button{padding:8px 16px}
+.panel{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mut);margin:6px 0 2px}
+input[type=text]{width:100%;padding:7px 9px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--fg)}
+input[type=range]{width:100%}
+table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:5px 8px;border-bottom:1px solid var(--bd);text-align:left}
+th{color:var(--mut);font-weight:600}kbd{background:#333;color:#fff;border-radius:4px;padding:1px 6px;font-size:12px}
+.sheet{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.sheet figure{margin:0;background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px;cursor:pointer}
+.sheet figure:hover{border-color:var(--red)}
+.sheet canvas{width:100%;aspect-ratio:4/3;display:block;border-radius:4px;background:#000}
+.sheet figcaption{font-size:13px;margin-top:6px}.sheet figcaption span{color:var(--mut)}
+.rec{border-left:4px solid var(--red)}
+</style></head><body>
+<header><h1>Badge UI states</h1><p>An interactive mockup of the proposed badge screens, with a contact sheet of every state below. Click the buttons or use the keyboard: arrow keys, <kbd>Enter</kbd> (Select), <kbd>Esc</kbd> (Back). Hero images, taglines and URLs are placeholders. Fonts here are system fonts; the badge uses its own.</p></header>
+
+<section class="top">
+ <div>
+  <div class="badge">
+   <canvas id="dev" width="320" height="240"></canvas>
+   <div class="pad">
+    <span class="sp"></span><button data-k="up" title="Up">▲ Up</button><span class="sp"></span>
+    <button data-k="left" title="Left">◀ Left</button><button data-k="select" title="Select">● Select</button><button data-k="right" title="Right">Right ▶</button>
+    <span class="sp"></span><button data-k="down" title="Down">▼ Down</button><span class="sp"></span>
+   </div>
+   <div class="row"><button data-k="back">Back</button></div>
+  </div>
+ </div>
+ <div>
+  <div class="panel"><h2>Button map</h2>
+   <table>
+    <tr><th>Button</th><th>Logo</th><th>Product card</th><th>Level</th></tr>
+    <tr><td>Left / Right</td><td colspan="3">Step through screens (logo → 5 cards → level → logo)</td></tr>
+    <tr><td>Up</td><td>Play / pause animation</td><td>(unused)</td><td>(unused)</td></tr>
+    <tr><td>Down</td><td>Contact QR</td><td>QR to product page</td><td>(unused)</td></tr>
+    <tr><td>Select</td><td>Instant impact moment</td><td>(free)</td><td>(free)</td></tr>
+    <tr><td>Back</td><td colspan="3">Close a QR screen; otherwise exit the app</td></tr>
+   </table></div>
+  <div class="panel rec"><h2>Recommended five cards</h2>
+   <p>Sawzall · Hole-Hawg · M18 FUEL Impact Driver · PACKOUT · MX FUEL. Heritage, the current workhorse, and the two systems people recognise on sight. Swap in the newest release (e.g. M18 FUEL SURGE) for any of them.</p></div>
+  <div class="panel"><h2>Contact card</h2>
+   <label>Name</label><input type="text" id="cName" value="Nicholas Quandt">
+   <label>Role</label><input type="text" id="cRole" value="[Your role]">
+   <label>QR points to</label><input type="text" id="cUrl" value="https://example.com/nick">
+  </div>
+  <div class="panel"><h2>Level (simulated tilt)</h2>
+   <p>Move the pointer over the badge screen while on the Level screen, or use the sliders.</p>
+   <label>Tilt X <b id="txv">0°</b></label><input type="range" id="tx" min="-30" max="30" step="0.5" value="8">
+   <label>Tilt Y <b id="tyv">0°</b></label><input type="range" id="ty" min="-30" max="30" step="0.5" value="-5">
+  </div>
+ </div>
+</section>
+
+<section><h2>Every state</h2><p>Click one to jump to it on the badge above.</p><div class="sheet" id="sheet"></div></section>
+
+<script>
+const LOGO=__DATA__;const LW=__W__;
+const W=320,H=240,FIT=240/LW,RED='#DB011C',WHITE='#fff',YEL='#FFD600';
+const P=LOGO.map(part=>{const p=new Path2D();for(const c of part){for(let i=0;i<c.length;i+=2)i?p.lineTo(c[i],c[i+1]):p.moveTo(c[i],c[i+1]);p.closePath();}return p;});
+const cl=v=>v<0?0:v>1?1:v,eo=t=>1-Math.pow(1-cl(t),3);
+const PRODUCTS=[
+ {name:'Sawzall',cat:'Reciprocating saw',url:'https://www.milwaukeetool.com/'},
+ {name:'Hole-Hawg',cat:'Right-angle drill',url:'https://www.milwaukeetool.com/'},
+ {name:'M18 FUEL Impact Driver',cat:'Cordless impact driver',url:'https://www.milwaukeetool.com/'},
+ {name:'PACKOUT',cat:'Modular storage system',url:'https://www.milwaukeetool.com/'},
+ {name:'MX FUEL',cat:'Heavy-duty cordless equipment',url:'https://www.milwaukeetool.com/'}];
+const SCREENS=[{t:'logo',label:'Logo (home)',sub:'animated; shown static here'},...PRODUCTS.map((p,i)=>({t:'card',i,label:'Card: '+p.name,sub:p.cat})),{t:'level',label:'Level',sub:'bubble level from the tilt sensor'}];
+const st={idx:0,qr:false,paused:false,iconUntil:0,iconKind:0,trans:null,hintUntil:0,flashAt:-1e9,tx:8,ty:-5};
+const now=()=>performance.now();
+
+function logo(c,{cx=W/2,cy=H/2,s=1,fill=WHITE,a=1,dx=0,dy=0}={}){c.save();c.translate(cx+dx,cy+dy);c.scale(FIT*s,FIT*s);c.globalAlpha=a;c.fillStyle=fill;for(const p of P)c.fill(p,'nonzero');c.restore();}
+function fit(c,text,maxw,font){c.font=font;while(text.length>3&&c.measureText(text).width>maxw)text=text.slice(0,-2)+'…';return text;}
+function hints(c,txt,a){if(a<=0)return;c.save();c.globalAlpha=a*.75;c.fillStyle='#fff';c.font='11px system-ui';c.textAlign='center';c.fillText(txt,W/2,H-8);c.restore();}
+function qrDraw(c,text,x,y,size){const q=qrcode(0,'M');q.addData(text);q.make();const n=q.getModuleCount(),m=size/(n+8);
+  c.fillStyle='#fff';c.fillRect(x,y,size,size);c.fillStyle='#000';
+  for(let r=0;r<n;r++)for(let k=0;k<n;k++)if(q.isDark(r,k))c.fillRect(x+(k+4)*m,y+(r+4)*m,Math.ceil(m),Math.ceil(m));}
+
+function drawLogo(c,t,hintA){
+  c.fillStyle=RED;c.fillRect(0,0,W,H);
+  const fl=now()-st.flashAt;let sh=0;
+  if(fl>=0&&fl<450)sh=8*Math.pow(1-fl/450,2);
+  logo(c,{dx:(Math.random()-.5)*sh*2,dy:(Math.random()-.5)*sh*2});
+  if(fl>=0&&fl<320){c.fillStyle='#fff';c.globalAlpha=.8*(1-fl/320);c.fillRect(0,0,W,H);c.globalAlpha=1;}
+  if(t<st.iconUntil&&st.iconKind){const a=cl((st.iconUntil-t)/400);c.fillStyle='#fff';c.globalAlpha=a;
+    if(st.iconKind===1){c.fillRect(286,10,6,18);c.fillRect(298,10,6,18);}else{c.beginPath();c.moveTo(286,10);c.lineTo(305,19);c.lineTo(286,28);c.fill();}c.globalAlpha=1;}
+  hints(c,'◀ ▶ browse   ▼ contact QR   ▲ pause   ● impact',hintA);
+}
+function drawCard(c,i,hintA){
+  const p=PRODUCTS[i];c.fillStyle=RED;c.fillRect(0,0,W,H);
+  logo(c,{cx:48,cy:19,s:.3});
+  // hero panel placeholder
+  c.save();c.beginPath();c.roundRect(14,36,292,120,10);c.fillStyle='#fff';c.fill();c.clip();
+  c.strokeStyle='#e6e6e6';c.lineWidth=6;for(let x=-140;x<320;x+=22){c.beginPath();c.moveTo(x,156);c.lineTo(x+120,36);c.stroke();}
+  c.fillStyle='#8a8a8a';c.font='600 12px system-ui';c.textAlign='center';c.fillText('HERO IMAGE',160,92);c.font='11px system-ui';c.fillText('292 × 120 on a white panel',160,108);c.restore();
+  c.fillStyle='#fff';c.textAlign='left';c.font=fit(c,p.name,290,'800 24px system-ui');c.fillText(fit(c,p.name,290,'800 24px system-ui'),14,184);
+  c.globalAlpha=.88;c.font='14px system-ui';c.fillText(p.cat,14,205);c.globalAlpha=1;
+  // dots
+  for(let k=0;k<PRODUCTS.length;k++){c.beginPath();c.arc(W-14-(PRODUCTS.length-1-k)*12,16,k===i?4:3,0,7);c.fillStyle='#fff';c.globalAlpha=k===i?1:.45;c.fill();}c.globalAlpha=1;
+  hints(c,'◀ ▶ browse   ▼ QR',hintA);
+}
+function drawLevel(c,tx,ty,hintA){
+  c.fillStyle=RED;c.fillRect(0,0,W,H);
+  const cx=160,cy=100,R=68;
+  const ang=Math.hypot(tx,ty),level=ang<1;
+  c.strokeStyle='#fff';c.lineWidth=3;c.beginPath();c.arc(cx,cy,R,0,7);c.stroke();
+  c.globalAlpha=.45;c.lineWidth=1.5;c.beginPath();c.arc(cx,cy,R*.5,0,7);c.stroke();c.beginPath();c.moveTo(cx-R,cy);c.lineTo(cx+R,cy);c.moveTo(cx,cy-R);c.lineTo(cx,cy+R);c.stroke();c.globalAlpha=1;
+  c.lineWidth=3;c.beginPath();c.arc(cx,cy,16,0,7);c.stroke();
+  const k=R-14,max=25;let bx=cx-tx/max*k,by=cy-ty/max*k;const d=Math.hypot(bx-cx,by-cy);if(d>k){bx=cx+(bx-cx)*k/d;by=cy+(by-cy)*k/d;}
+  c.beginPath();c.arc(bx,by,12,0,7);c.fillStyle=level?YEL:'#fff';c.globalAlpha=.95;c.fill();c.globalAlpha=1;
+  c.fillStyle='#fff';c.textAlign='center';c.font='800 26px system-ui';c.fillText(ang.toFixed(1)+'°',cx,cy+R+30);
+  c.font='600 12px system-ui';c.globalAlpha=.9;c.fillText(level?'LEVEL':'TILT',cx,cy+R+47);c.globalAlpha=1;
+  logo(c,{cx:44,cy:18,s:.28});
+  hints(c,'◀ ▶ browse',hintA);
+}
+function drawQR(c,title,sub,url){
+  c.fillStyle='#fff';c.fillRect(0,0,W,H);
+  qrDraw(c,url,76,10,168);
+  c.fillStyle='#000';c.textAlign='center';c.font=fit(c,title,300,'800 18px system-ui');c.fillText(fit(c,title,300,'800 18px system-ui'),160,200);
+  c.fillStyle='#555';c.font=fit(c,sub,300,'13px system-ui');c.fillText(fit(c,sub,300,'13px system-ui'),160,218);
+  c.fillStyle=RED;c.fillRect(0,H-6,W,6);
+  c.fillStyle='#888';c.font='10px system-ui';c.fillText('▼ or Back to return',160,H-10);
+}
+function drawScreen(c,sc,o){
+  if(sc.t==='logo'){if(o.qr)drawQR(c,document.getElementById('cName').value,document.getElementById('cRole').value+'  ·  Milwaukee Tool',document.getElementById('cUrl').value);else drawLogo(c,o.t,o.hint);}
+  else if(sc.t==='card'){if(o.qr)drawQR(c,PRODUCTS[sc.i].name,PRODUCTS[sc.i].cat,PRODUCTS[sc.i].url);else drawCard(c,sc.i,o.hint);}
+  else drawLevel(c,o.tx,o.ty,o.hint);
+}
+
+const dev=document.getElementById('dev'),dc=dev.getContext('2d');
+function frame(){
+  const t=now(),hint=cl((st.hintUntil-t)/600);
+  const base={t,qr:st.qr,hint,tx:st.tx,ty:st.ty};
+  if(st.trans){
+    const p=eo((t-st.trans.t0)/260);
+    dc.save();dc.translate(-st.trans.dir*W*p,0);drawScreen(dc,SCREENS[st.trans.from],{...base,qr:false});dc.restore();
+    dc.save();dc.translate(st.trans.dir*W*(1-p),0);drawScreen(dc,SCREENS[st.idx],{...base,qr:false});dc.restore();
+    if(p>=1)st.trans=null;
+  }else drawScreen(dc,SCREENS[st.idx],base);
+  requestAnimationFrame(frame);
+}
+function press(k){
+  const t=now();st.hintUntil=t+3000;const sc=SCREENS[st.idx];
+  if(k==='left'||k==='right'){if(st.qr)return;const d=k==='right'?1:-1;const to=(st.idx+d+SCREENS.length)%SCREENS.length;st.trans={from:st.idx,to,dir:d,t0:t};st.idx=to;}
+  else if(k==='down'){if(sc.t!=='level')st.qr=!st.qr;}
+  else if(k==='back'){st.qr=false;}
+  else if(k==='up'){if(sc.t==='logo'&&!st.qr){st.paused=!st.paused;st.iconKind=st.paused?1:2;st.iconUntil=t+1200;}}
+  else if(k==='select'){if(sc.t==='logo'&&!st.qr)st.flashAt=t;}
+}
+document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>press(b.dataset.k));
+addEventListener('keydown',e=>{const m={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down',Enter:'select',Escape:'back'}[e.key];if(m){e.preventDefault();press(m);}});
+const tx=document.getElementById('tx'),ty=document.getElementById('ty');
+function sliders(){st.tx=+tx.value;st.ty=+ty.value;document.getElementById('txv').textContent=st.tx+'°';document.getElementById('tyv').textContent=st.ty+'°';}
+tx.oninput=ty.oninput=sliders;sliders();
+dev.addEventListener('pointermove',e=>{if(SCREENS[st.idx].t!=='level')return;const r=dev.getBoundingClientRect();st.tx=((e.clientX-r.left)/r.width-.5)*50;st.ty=((e.clientY-r.top)/r.height-.5)*50;tx.value=st.tx;ty.value=st.ty;document.getElementById('txv').textContent=st.tx.toFixed(1)+'°';document.getElementById('tyv').textContent=st.ty.toFixed(1)+'°';});
+// contact sheet
+const sheet=document.getElementById('sheet');
+const items=[];SCREENS.forEach((sc,i)=>{items.push({sc,i,qr:false,label:sc.label,sub:sc.sub});if(sc.t!=='level')items.push({sc,i,qr:true,label:sc.t==='logo'?'Contact QR':'QR: '+PRODUCTS[sc.i].name,sub:'press Down'});});
+items.forEach(it=>{const f=document.createElement('figure');f.innerHTML='<canvas width="320" height="240"></canvas><figcaption><b>'+it.label+'</b><br><span>'+it.sub+'</span></figcaption>';sheet.appendChild(f);it.ctx=f.querySelector('canvas').getContext('2d');
+  f.onclick=()=>{st.idx=it.i;st.qr=it.qr;st.trans=null;scrollTo({top:0,behavior:'smooth'});};});
+function sheetDraw(){for(const it of items)drawScreen(it.ctx,it.sc,{t:now(),qr:it.qr,hint:1,tx:st.tx,ty:st.ty});}
+sheetDraw();setInterval(sheetDraw,500);
+requestAnimationFrame(frame);
+</script></body></html>
