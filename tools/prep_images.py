@@ -1,6 +1,6 @@
 """Prepare badge-sized product images: assets/source/*.webp -> assets/products/*.png (gitignored).
 
-Crops to the product, removes the blue ONE-KEY wifi badge, and fits within the hero area.
+Crops to the product (optionally rotating per `rotate` in the manifest), removes the blue ONE-KEY wifi badge, and fits within the hero area.
 Run: uv run --with pillow python tools/prep_images.py
 """
 import json
@@ -22,6 +22,8 @@ for p in products:
                 px[x, y] = (r, g, b, 0)
     alpha = im.getchannel("A").point(lambda v: 255 if v > 8 else 0)
     im = im.crop(alpha.getbbox())
+    if p.get("rotate"):
+        im = im.rotate(p["rotate"], expand=True)   # counter-clockwise degrees
     im.thumbnail(BOX, Image.LANCZOS)
     im.save(out / f"{p['slug']}.png", optimize=True)
     print(f"{p['slug']}: {im.size}")
