@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Badge Animation Concepts</title>
+<style>
+:root{--bg:#111;--fg:#eee;--mut:#999;--card:#1c1c1c;--bd:#333;--red:#DB011C}
+@media (prefers-color-scheme: light){:root{--bg:#f3f3f3;--fg:#111;--mut:#555;--card:#fff;--bd:#ccc}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,sans-serif}
+header{padding:20px 16px 4px;max-width:1100px;margin:auto}
+h1{margin:0 0 4px;font-size:22px} header p{margin:0;color:var(--mut)}
+main{display:grid;grid-template-columns:minmax(340px,640px);justify-content:center;gap:16px;padding:16px;max-width:1100px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;cursor:pointer}
+.card:hover{border-color:var(--red)}
+canvas{width:100%;aspect-ratio:4/3;display:block;border-radius:6px;background:#000;image-rendering:auto}
+.card h2{margin:10px 0 2px;font-size:16px}.card h2 span{color:var(--red)}
+.card p{margin:0;color:var(--mut);font-size:13px}
+.ctl{max-width:1100px;margin:12px auto 0;padding:0 16px;display:flex;gap:28px;flex-wrap:wrap}.ctl label{display:flex;gap:8px;align-items:center}.ctl b{min-width:44px}
+</style></head><body>
+<header><h1>Badge animation: procedural cycle</h1><p>Every cycle is a different composition: 3 entrances, 3 exits, random hold length, random glitch bursts. No repeats back to back; the caption shows what's playing. Click to restart. Speed and Hold sliders still apply.</p></header>
+<div class="ctl"><label>Speed <input id="spd" type="range" min="0.25" max="1.5" step="0.05" value="0.6"> <b id="spdv">0.60x</b></label>
+<label>Hold on finished logo <input id="hold" type="range" min="1" max="12" step="1" value="5"> <b id="holdv">5s</b></label></div>
+<main id="grid"></main>
+<script>
+const LOGO=[[[57.8, -27.56, 58.05, -28.44, 58.68, -29.05, 59.56, -29.28, 60.44, -29.05, 61.06, -28.44, 61.3, -27.56, 61.06, -26.67, 60.43, -26.06, 59.56, -25.83, 58.69, -26.05, 58.05, -26.67], [59.56, -26.12, 60.27, -26.31, 60.77, -26.82, 60.95, -27.56, 60.77, -28.3, 60.27, -28.8, 59.56, -28.99, 58.85, -28.8, 58.35, -28.29, 58.16, -27.56, 58.34, -26.83, 58.85, -26.31], [59.2, -26.56, 58.89, -26.56, 58.89, -28.55, 59.65, -28.55, 60.04, -28.49, 60.28, -28.3, 60.36, -27.98, 60.29, -27.69, 60.11, -27.51, 59.84, -27.44, 60.4, -26.56, 60.07, -26.56, 59.54, -27.42, 59.2, -27.42, 59.2, -26.56], [59.55, -27.68, 59.79, -27.7, 59.97, -27.78, 60.04, -28.0, 59.97, -28.19, 59.81, -28.27, 59.6, -28.3, 59.19, -28.3, 59.19, -27.68]], [[67.51, -11.32, 31.94, 2.18, 34.01, -2.28, -14.19, 14.19, -11.53, 8.67, -67.5, 30.17, -25.47, 19.63, -28.91, 26.25, 23.18, 6.86, 20.21, 12.64]], [[-36.11, -21.95, -42.28, -16.75, -42.92, -17.47, -44.15, -18.85, -44.92, -19.72, -46.38, -18.48, -48.86, -16.38, -50.18, -15.26, -49.46, -22.36, -67.51, -7.16, -55.19, -13.07, -58.35, 13.49, -57.36, 14.22, -55.46, 15.62, -54.26, 16.49, -54.06, 14.9, -53.71, 12.06, -53.24, 8.35, -52.71, 4.13, -52.17, -0.23, -51.65, -4.36, -51.21, -7.9, -50.88, -10.47, -50.73, -11.7, -50.73, -11.75, -47.16, -14.76, -46.4, -14.01, -49.27, 10.21, -48.26, 10.96, -46.35, 12.38, -45.19, 13.24, -45.09, 12.41, -44.84, 10.29, -44.48, 7.19, -44.04, 3.43, -43.56, -0.67, -43.07, -4.8, -42.62, -8.64, -42.24, -11.88, -41.97, -14.19, -38.43, -17.19, -37.67, -16.44, -40.44, 7.18, -36.37, 10.19, -33.03, -18.56, -36.11, -21.95]], [[55.34, -15.47, 54.11, -16.5, 54.36, -18.51, 60.09, -21.76, 55.47, -27.48, 51.25, -23.8, 50.26, -15.85, 44.65, -12.75, 43.31, -13.85, 43.58, -15.99, 49.81, -19.43, 44.79, -25.49, 40.21, -21.59, 39.25, -14.04, 37.21, -12.07, 34.0, -18.39, 41.19, -24.94, 37.92, -24.47, 32.52, -19.87, 33.81, -30.17, 29.9, -29.63, 27.72, -11.98, 25.36, -9.39, 24.8, -9.86, 26.22, -21.05, 22.01, -20.09, 20.7, -9.96, 18.82, -7.7, 18.03, -8.39, 19.44, -19.5, 15.2, -18.66, 13.89, -8.28, 11.93, -5.78, 11.07, -6.54, 12.54, -18.13, 8.3, -17.22, 8.21, -16.32, 5.25, -17.75, 1.1, -12.45, -0.09, -2.99, 3.91, 0.42, 7.6, -4.33, 10.76, -1.64, 14.22, -6.07, 17.18, -3.47, 20.44, -7.74, 23.55, -5.04, 27.75, -9.62, 30.96, -7.08, 31.93, -14.83, 35.29, -7.92, 39.76, -12.27, 42.66, -9.84, 51.3, -14.61, 53.51, -12.7, 61.45, -17.34, 61.67, -19.05, 55.33, -15.47], [55.06, -24.15, 56.92, -21.94, 54.62, -20.64, 55.06, -24.15], [44.35, -21.96, 46.37, -19.62, 43.87, -18.24], [6.91, -6.19, 5.19, -4.08, 4.27, -4.87, 5.67, -15.89, 7.99, -14.66, 6.91, -6.18], [-3.2, -14.89, -4.92, -1.65, -5.86, -0.63, -7.46, -1.96, -5.87, -14.42, -10.13, -13.38, -11.76, -0.42, -13.02, 1.25, -14.37, 0.06, -12.77, -12.98, -17.04, -12.08, -18.47, -0.22, -20.25, 2.18, -21.5, 1.17, -18.74, -21.14, -22.91, -20.47, -25.49, 0.97, -27.61, 3.89, -28.66, 3.02, -26.9, -10.05, -31.16, -9.18, -33.13, 5.97, -29.38, 8.91, -25.69, 3.92, -21.83, 7.01, -18.11, 1.96, -14.13, 5.42, -10.2, 0.22, -7.01, 3.03, -1.49, -2.97, 0.21, -15.63, -3.2, -14.89], [-26.09, -16.64, -30.35, -15.92, -30.88, -11.75, -26.62, -12.55]]];
+const W=320,H=240,LW=135.01,FIT=276/LW,CX=W/2,CY=H/2+4,HALF=138;
+const RED='#DB011C',WHITE='#fff',YEL='#FFD600';
+const P=LOGO.map(part=>{const p=new Path2D();for(const c of part){for(let i=0;i<c.length;i+=2)i?p.lineTo(c[i],c[i+1]):p.moveTo(c[i],c[i+1]);p.closePath();}return p;});
+const MARK=0,BOLT=1,WA=2,WB=3;
+const cl=v=>v<0?0:v>1?1:v, eo=t=>1-Math.pow(1-cl(t),3), ei=t=>Math.pow(cl(t),3);
+const eob=t=>{t=cl(t);const a=1.70158,b=a+1;return 1+b*Math.pow(t-1,3)+a*Math.pow(t-1,2)};
+const rnd=n=>{const x=Math.sin(n*12.9898)*43758.5453;return x-Math.floor(x)};
+const pr=(t,s,l)=>cl((t-s)/l);
+function part(c,i,fill,o={}){const{dx=0,dy=0,s=1,a=1}=o;if(a<=0)return;c.save();c.translate(CX+dx,CY+dy);c.scale(FIT*s,FIT*s);c.globalAlpha=a;c.fillStyle=fill;c.fill(P[i],'nonzero');c.restore();}
+function word(c,fill,o){part(c,WA,fill,o);part(c,WB,fill,o);}
+function all(c,fill,o){word(c,fill,o);part(c,BOLT,fill,o);part(c,MARK,fill,o);}
+function clip(c,x,y,w,h,fn){c.save();c.beginPath();c.rect(x,y,w,h);c.clip();fn();c.restore();}
+function bg(c,col){c.fillStyle=col;c.fillRect(0,0,W,H);}
+let CUR_L=9000;
+function fadeOut(c,t,L,len=500){L=CUR_L;len=500;const f=pr(t,L-len,len);if(f>0){c.fillStyle='#000';c.globalAlpha=f;c.fillRect(0,0,W,H);c.globalAlpha=1;}}
+const lead=p=>[CX+(-67.5+135*p)*FIT,CY+(30-41.3*p)*FIT];
+
+const V=[
+{name:'Power Up',desc:'Bolt charges across, lettering flickers on like a work light. Black background, red glow.',L:5200,
+ draw(c,t){bg(c,'#000');
+  const p=eo(t/700);
+  if(t>0){const g=[[1.10,.10],[1.05,.18]];
+   for(const[s,a]of g)clip(c,CX-HALF,0,276*p,H,()=>part(c,BOLT,WHITE,{s,a}));
+   clip(c,CX-HALF,0,276*p,H,()=>part(c,BOLT,WHITE));}
+  const k=pr(t,700,900);
+  if(k>0){const on=k>=1||rnd(Math.floor(t/55))<k;const a=on?1:.08;
+   if(on){word(c,RED,{s:1.06,a:.18});word(c,RED,{s:1.03,a:.28});}
+   word(c,RED,{a});}
+  if(t>1900)part(c,MARK,WHITE,{s:eob(pr(t,1900,250)),a:1});
+  const glint=(t>3000&&t<3350&&Math.floor((t-3000)/60)%2==0);
+  if(glint)part(c,BOLT,YEL,{s:1.04});
+  fadeOut(c,t,5200);}},
+{name:'Impact',desc:'Lettering slams in with screen shake and a shockwave, then the bolt rips through throwing sparks.',L:5000,
+ draw(c,t){bg(c,RED);
+  const sh=t>550&&t<1000?8*Math.pow(1-pr(t,550,450),2):0;
+  c.save();c.translate((rnd(t|0)-.5)*sh*2,(rnd((t|0)+7)-.5)*sh*2);
+  const p=pr(t,300,250);
+  if(p>0)word(c,WHITE,{s:3-2*ei(p),a:p});
+  if(t>550){const r=(t-550)*.7;c.strokeStyle='#fff';c.lineWidth=5*(1-pr(t,550,500));c.globalAlpha=1-pr(t,550,500);
+    if(c.lineWidth>.2){c.beginPath();c.arc(CX,CY,r,0,7);c.stroke();}c.globalAlpha=1;}
+  const bp=eo(pr(t,900,350));
+  clip(c,CX-HALF,0,276*bp,H,()=>part(c,BOLT,WHITE));
+  for(let i=0;i<22;i++){const tb=900+i*16,age=t-tb;if(age<0||age>450)continue;
+   const [lx,ly]=lead(eo(pr(tb,900,350)));const vx=(rnd(i)-.3)*.25,vy=(rnd(i+50)-.9)*.3;
+   const x=lx+vx*age,y=ly+vy*age+age*age*.0004;c.globalAlpha=1-age/450;c.fillStyle=age<150?'#fff':YEL;c.fillRect(x,y,3,3);c.globalAlpha=1;}
+  if(t>1400)part(c,MARK,WHITE,{s:eob(pr(t,1400,250))});
+  c.restore();fadeOut(c,t,5000);}},
+{name:'Slice Reveal',desc:'Lettering rises in staggered strips, then the bolt streaks across with a motion trail.',L:5600,
+ draw(c,t){bg(c,RED);
+  const N=8,sw=276/N;
+  for(let i=0;i<N;i++){const p=eo(pr(t,300+i*70,380));if(p<=0)continue;
+   clip(c,CX-HALF+i*sw,0,sw+.5,H,()=>word(c,WHITE,{dy:(1-p)*50,a:p}));}
+  const b=pr(t,1300,330);
+  if(b>0){const e=eo(b);for(let g=4;g>=1;g--)part(c,BOLT,WHITE,{dx:-(1-e)*420-g*18*(1-e),a:.12*(1-e)*(5-g)});
+   part(c,BOLT,WHITE,{dx:-(1-e)*420});}
+  if(t>1700)part(c,MARK,WHITE,{s:eob(pr(t,1700,250))});
+  fadeOut(c,t,5600,600);}},
+{name:'Glitch',desc:'Digital tear that locks into place, with chromatic split. Re-glitches twice while idle.',L:5000,
+ draw(c,t){bg(c,RED);
+  const bursts=[[0,900],[2600,2900],[3900,4150]];
+  let g=0;for(const[a,b]of bursts)if(t>=a&&t<b)g=1-(t-a)/(b-a);
+  const frame=Math.floor(t/50);
+  if(g>0){
+   if(rnd(frame)<.2){fadeOut(c,0,0);}
+   const bands=6,bh=H/bands;
+   for(let i=0;i<bands;i++){const off=(rnd(frame*7+i)-.5)*70*g;
+    clip(c,0,i*bh,W,bh,()=>{all(c,'#00E5FF',{dx:off-5*g,a:.7});all(c,'#000',{dx:off+5*g,a:.5});all(c,WHITE,{dx:off});});}
+  }else all(c,WHITE);
+  if(t<250&&rnd(frame+3)<.5){c.fillStyle='#000';c.fillRect(0,0,W,H);}
+  fadeOut(c,t,5000);}},
+{name:'Strike',desc:'Black screen, bolt strikes, white flash, red floods out from the impact and the name pops in.',L:5200,
+ draw(c,t){bg(c,'#000');
+  const f=eo(pr(t,300,500));
+  if(f>0){c.fillStyle=RED;c.beginPath();c.arc(CX,CY,f*230,0,7);c.fill();}
+  const bp=pr(t,0,300);
+  part(c,BOLT,WHITE,{dx:-(1-ei(bp))*420,a:1});
+  const w=pr(t,420,450);if(w>0)word(c,WHITE,{s:1.35-.35*eob(w),a:cl(w*2.5)});
+  if(t>1000)part(c,MARK,WHITE,{s:eob(pr(t,1000,250))});
+  const fl=pr(t,300,300);if(fl>0&&fl<1){c.fillStyle='#fff';c.globalAlpha=.85*(1-fl);c.fillRect(0,0,W,H);c.globalAlpha=1;}
+  for(const g of[2800,3900])if(t>g&&t<g+360&&Math.floor((t-g)/60)%2==0)part(c,BOLT,YEL,{s:1.03});
+  fadeOut(c,t,5200);}},
+{name:'Charge',desc:'Outline draws on, fills white left to right like a battery charging, then the red floods in.',L:5600,
+ draw(c,t){bg(c,'#000');
+  const f=pr(t,2000,350);
+  if(f>0){c.fillStyle=RED;c.fillRect(0,0,W*eo(f),H);}
+  const oa=cl(t/400);
+  c.save();c.translate(CX,CY);c.scale(FIT,FIT);c.strokeStyle=f>=1?'#fff':RED;c.globalAlpha=oa*(f>=1?0:1);c.lineWidth=1.2/FIT*1.2;
+  for(const p of P)c.stroke(p);c.restore();
+  const p=eo(pr(t,500,1500));
+  if(p>0){clip(c,CX-HALF,0,276*p,H,()=>all(c,WHITE));
+   if(p<1){c.fillStyle=YEL;c.globalAlpha=.9;c.fillRect(CX-HALF+276*p,CY-70,3,140);c.globalAlpha=1;}}
+  if(t>2000&&t<2250){c.fillStyle='#fff';c.globalAlpha=.6*(1-pr(t,2000,250));c.fillRect(0,0,W,H);c.globalAlpha=1;}
+  for(const g of[3300,4300])if(t>g&&t<g+360&&Math.floor((t-g)/60)%2==0)part(c,BOLT,YEL,{s:1.03});
+  fadeOut(c,t,5600);}},
+{name:'Mask Wipe + Strike',desc:'Red background. Lettering unmasks left to right behind a slanted edge, then the bolt flies in along its own angle and strikes into place with a flash, shake and sparks.',L:5200,
+ draw(c,t){bg(c,RED);
+  const sh=t>1350&&t<1750?7*Math.pow(1-pr(t,1350,400),2):0;
+  c.save();c.translate((rnd(t|0)-.5)*sh*2,(rnd((t|0)+9)-.5)*sh*2);
+  // lettering, then mask in background red over the part not yet revealed
+  const w=eo(pr(t,250,900));
+  word(c,WHITE);
+  const ex=CX-HALF-50+(276+100)*w;
+  c.fillStyle=RED;c.beginPath();c.moveTo(ex+30,0);c.lineTo(W+60,0);c.lineTo(W+60,H);c.lineTo(ex-30,H);c.closePath();c.fill();
+  if(w>0&&w<1){c.fillStyle='#fff';c.globalAlpha=.9;c.beginPath();c.moveTo(ex+30,0);c.lineTo(ex+36,0);c.lineTo(ex-24,H);c.lineTo(ex-30,H);c.closePath();c.fill();c.globalAlpha=1;}
+  if(t>1100)part(c,MARK,WHITE,{s:eob(pr(t,1500,250))});
+  // bolt strikes in along its own axis
+  const b=pr(t,1150,230),e=ei(b);
+  if(b>0){const d=(1-e)*430;for(let g=3;g>=1;g--)part(c,BOLT,WHITE,{dx:-d-g*22*(1-e),dy:(d+g*22*(1-e))*.306,a:.14*(4-g)*(1-e)});
+   part(c,BOLT,WHITE,{dx:-d,dy:d*.306});}
+  if(t>1380&&t<1700){const f=pr(t,1380,320);c.fillStyle='#fff';c.globalAlpha=.8*(1-f);c.fillRect(0,0,W,H);c.globalAlpha=1;
+   for(let i=0;i<24;i++){const age=t-1380;const a=rnd(i)*6.28,sp=.05+rnd(i+30)*.25;const [lx,ly]=lead(rnd(i+60));
+    c.globalAlpha=1-age/320;c.fillStyle=age<110?'#fff':YEL;c.fillRect(lx+Math.cos(a)*sp*age,ly+Math.sin(a)*sp*age,3,3);c.globalAlpha=1;}}
+  c.restore();
+  for(const g of[3300,4200])if(t>g&&t<g+360&&Math.floor((t-g)/60)%2==0)part(c,BOLT,YEL,{s:1.03});
+  fadeOut(c,t,5200);}},
+{name:'Mask Wipe + Bolt Drops Down',desc:'Same wipe, but the bolt snaps in from above on a hard cut with a quick overexposed flash, no sparks. Cleaner, more corporate.',L:5200,
+ draw(c,t){bg(c,RED);
+  const w=eo(pr(t,250,900));
+  word(c,WHITE);
+  const ex=CX-HALF-50+(276+100)*w;
+  c.fillStyle=RED;c.beginPath();c.moveTo(ex+30,0);c.lineTo(W+60,0);c.lineTo(W+60,H);c.lineTo(ex-30,H);c.closePath();c.fill();
+  if(t>1200)part(c,MARK,WHITE,{s:eob(pr(t,1500,250))});
+  const b=pr(t,1150,160);
+  if(b>0){const e=ei(b);const dy=-(1-e)*260;
+   if(b<1){part(c,BOLT,WHITE,{dy:dy-40,a:.2});part(c,BOLT,WHITE,{dy:dy-20,a:.35});}
+   part(c,BOLT,WHITE,{dy});
+   if(b>=1&&t<1500){part(c,BOLT,WHITE,{s:1.12,a:.5*(1-pr(t,1310,190))});}}
+  if(t>1310&&t<1460){c.fillStyle='#fff';c.globalAlpha=.7*(1-pr(t,1310,150));c.fillRect(0,0,W,H);c.globalAlpha=1;}
+  for(const g of[3300,4200])if(t>g&&t<g+360&&Math.floor((t-g)/60)%2==0)part(c,BOLT,YEL,{s:1.03});
+  fadeOut(c,t,5200);}},
+];
+V.unshift({name:'Impact \u21c4 Glitch (combo)',desc:'Alternates every loop: Impact (slam, shockwave, bolt and sparks), then Glitch (digital tear that locks in, re-glitching while it holds), then back to Impact.',alt:[V[1],V[3]],draw(){}});
+
+// ---- procedural: impact in -> glitch around -> glitch out -> impact in ----
+function impactIn(c,t){ // t = virtual ms
+  const sh=t>550&&t<1000?8*Math.pow(1-pr(t,550,450),2):0;
+  c.save();c.translate((rnd(t|0)-.5)*sh*2,(rnd((t|0)+7)-.5)*sh*2);
+  const p=pr(t,300,250);
+  if(p>0)word(c,WHITE,{s:3-2*ei(p),a:p});
+  if(t>550){const k=pr(t,550,500),w=5*(1-k);if(w>.4){c.strokeStyle='#fff';c.lineWidth=w;c.globalAlpha=1-k;c.beginPath();c.arc(CX,CY,(t-550)*.7,0,7);c.stroke();c.globalAlpha=1;}}
+  const bp=eo(pr(t,900,350));
+  clip(c,CX-HALF,0,276*bp,H,()=>part(c,BOLT,WHITE));
+  for(let i=0;i<22;i++){const tb=900+i*16,age=t-tb;if(age<0||age>450)continue;
+   const [lx,ly]=lead(eo(pr(tb,900,350)));const vx=(rnd(i)-.3)*.25,vy=(rnd(i+50)-.9)*.3;
+   c.globalAlpha=1-age/450;c.fillStyle=age<150?'#fff':YEL;c.fillRect(lx+vx*age,ly+vy*age+age*age*.0004,3,3);c.globalAlpha=1;}
+  if(t>1400)part(c,MARK,WHITE,{s:eob(pr(t,1400,250))});
+  c.restore();}
+function glitchLayers(c,frame,seed,bands,amp,split,tear,dim){ // draw logo torn into bands
+  const bh=H/bands;
+  for(let i=0;i<bands;i++){
+    const off=tear?(rnd(frame*7+i+seed)-.5)*amp:0;
+    if(dim&&dim(i)===false)continue;
+    clip(c,0,i*bh,W,bh,()=>{if(split){all(c,'#00E5FF',{dx:off-split,a:.7});all(c,'#000',{dx:off+split,a:.5});}all(c,WHITE,{dx:off});});}}
+
+const hh=(n,k)=>rnd(n*97.13+k*13.7+3.1);
+const IN_NAMES=['Impact slam','Mask wipe + bolt strike','Bolt-first strike'],OUT_NAMES=['Glitch out','Reverse mask wipe','CRT power-off'];
+const BURST_NAMES=['tear','RGB split','bolt flicker','jitter','bolt zap','INVERT'];
+const BURST_W=[3,2,2,2,1.5,.6];
+function pickW(x){let tot=BURST_W.reduce((a,b)=>a+b,0),r=x*tot;for(let i=0;i<BURST_W.length;i++){if(r<BURST_W[i])return i;r-=BURST_W[i];}return 0;}
+const PLANS=[];
+function plan(n){
+  if(PLANS[n])return PLANS[n];
+  const prev=n>0?plan(n-1):null;
+  const pick=(salt,k,avoid)=>{let v=Math.floor(hh(n,salt)*k);if(v===avoid)v=(v+1)%k;return v;};
+  const inKind=pick(0,3,prev&&prev.inKind),outKind=pick(1,3,prev&&prev.outKind);
+  const inDur=[1750,2000,1700][inKind]/SPEED,outDur=[1300,1000,900][outKind];
+  const hold=HOLD*1000*(.6+.8*hh(n,2)),blank=300+hh(n,3)*500;
+  const nb=Math.max(2,Math.floor(hold/1400)),slot=(hold-1200)/nb,bursts=[];
+  for(let j=0;j<nb;j++){let ty=pickW(hh(n,50+j));if(j>0&&ty===bursts[j-1].type)ty=(ty+1)%5;bursts.push({a:inDur+700+j*slot+hh(n,10+j)*slot*.55,dur:160+hh(n,30+j)*340,type:ty,bands:3+Math.floor(hh(n,70+j)*5),seed:j*11+n});}
+  const p={n,inKind,outKind,inDur,hold,outDur,blank,bursts,hEnd:inDur+hold,total:inDur+hold+outDur+blank};
+  return PLANS[n]=p;}
+function maskPoly(c,ex,fromLeft){c.fillStyle=RED;c.beginPath();
+  if(fromLeft){c.moveTo(-60,0);c.lineTo(ex+30,0);c.lineTo(ex-30,H);c.lineTo(-60,H);}
+  else{c.moveTo(ex+30,0);c.lineTo(W+60,0);c.lineTo(W+60,H);c.lineTo(ex-30,H);}
+  c.closePath();c.fill();}
+function edgeGlow(c,ex){c.fillStyle='#fff';c.globalAlpha=.9;c.beginPath();c.moveTo(ex+30,0);c.lineTo(ex+36,0);c.lineTo(ex-24,H);c.lineTo(ex-30,H);c.closePath();c.fill();c.globalAlpha=1;}
+function boltFly(c,e,axis=true){const d=(1-e)*430;for(let g=3;g>=1;g--)part(c,BOLT,WHITE,{dx:-d-g*22*(1-e),dy:(d+g*22*(1-e))*.306,a:.14*(4-g)*(1-e)});part(c,BOLT,WHITE,{dx:-d,dy:d*.306});}
+function sparksAt(c,t0,t,count,seed){for(let i=0;i<count;i++){const age=t-t0;if(age<0||age>360)continue;const a=rnd(i+seed)*6.28,sp=.05+rnd(i+seed+30)*.25;const [lx,ly]=lead(rnd(i+seed+60));
+  c.globalAlpha=1-age/360;c.fillStyle=age<110?'#fff':YEL;c.fillRect(lx+Math.cos(a)*sp*age,ly+Math.sin(a)*sp*age,3,3);c.globalAlpha=1;}}
+function wipeStrike(c,t){
+  const sh=t>1350&&t<1750?7*Math.pow(1-pr(t,1350,400),2):0;
+  c.save();c.translate((rnd(t|0)-.5)*sh*2,(rnd((t|0)+9)-.5)*sh*2);
+  const w=eo(pr(t,250,900));word(c,WHITE);const ex=CX-HALF-50+376*w;maskPoly(c,ex,false);if(w>0&&w<1)edgeGlow(c,ex);
+  if(t>1100)part(c,MARK,WHITE,{s:eob(pr(t,1500,250))});
+  const b=pr(t,1150,230);if(b>0)boltFly(c,ei(b));
+  if(t>1380&&t<1700){const f=pr(t,1380,320);c.fillStyle='#fff';c.globalAlpha=.8*(1-f);c.fillRect(0,0,W,H);c.globalAlpha=1;sparksAt(c,1380,t,24,5);}
+  c.restore();}
+function boltFirst(c,t){
+  const b=pr(t,0,300);if(b>0&&b<=1)boltFly(c,ei(b));
+  if(t>=300)part(c,BOLT,WHITE);
+  const w=pr(t,420,450);if(w>0)word(c,WHITE,{s:1.35-.35*eob(w),a:cl(w*2.5)});
+  if(t>1000)part(c,MARK,WHITE,{s:eob(pr(t,1000,250))});
+  const fl=pr(t,300,300);if(fl>0&&fl<1){c.fillStyle='#fff';c.globalAlpha=.7*(1-fl);c.fillRect(0,0,W,H);c.globalAlpha=1;sparksAt(c,300,t,16,9);}}
+function partXY(c,i,fill,sx,sy,a){if(a<=0)return;c.save();c.translate(CX,CY);c.scale(FIT*sx,FIT*sy);c.globalAlpha=a;c.fillStyle=fill;c.fill(P[i],'nonzero');c.restore();}
+function drawBurst(c,b,r,n){
+  const g=1-(r-b.a)/b.dur,frame=Math.floor(r/50);
+  switch(b.type){
+   case 0:glitchLayers(c,frame,b.seed,b.bands,70*g,5*g,true);break;
+   case 1:glitchLayers(c,frame,b.seed,1,0,7*g,false);break;
+   case 2:all(c,WHITE,{dx:(rnd(frame)-.5)*6*g});if(Math.floor((r-b.a)/60)%2==0)part(c,BOLT,YEL,{s:1.04});break;
+   case 3:all(c,WHITE,{dx:(rnd(frame+9)-.5)*8*g,dy:(rnd(frame)-.5)*16*g});break;
+   case 4:{all(c,WHITE);part(c,BOLT,YEL,{s:1+.07*g,a:.85});for(let i=0;i<10;i++){const [lx,ly]=lead(rnd(i+frame*3+b.seed));c.globalAlpha=g;c.fillStyle=i%2?'#fff':YEL;c.fillRect(lx+(rnd(i+frame)-.5)*24,ly+(rnd(i+frame+5)-.5)*24,3,3);c.globalAlpha=1;}break;}
+   case 5:bg(c,'#fff');all(c,RED);break;}}
+function procedural(c,r,p){
+  bg(c,RED);const frame=Math.floor(r/50);
+  if(r<p.inDur){const t=r*SPEED;[impactIn,wipeStrike,boltFirst][p.inKind](c,t);return;}
+  if(r<p.hEnd){let hit=null;for(const b of p.bursts)if(r>=b.a&&r<b.a+b.dur)hit=b;
+    if(hit)drawBurst(c,hit,r,p.n);else all(c,WHITE);return;}
+  if(r<p.hEnd+p.outDur){const k=(r-p.hEnd)/p.outDur;
+    if(p.outKind===0){glitchLayers(c,frame,p.n,8,40+170*k,5+8*k,true,i=>rnd(i*5.3+p.n*2.1)>k*k*1.1||rnd(frame*3+i)<.2*(1-k));}
+    else if(p.outKind===1){all(c,WHITE);const ex=CX-HALF-50+376*eo(k);maskPoly(c,ex,true);if(k<1)edgeGlow(c,ex);
+      if(k>.1&&k<.5&&Math.floor(k*30)%2==0)part(c,BOLT,YEL,{a:.9});}
+    else{ // CRT power-off: squash to a line, then to a dot
+      const k1=cl(k/.6),k2=cl((k-.6)/.4),sy=Math.max(.02,1-eo(k1)),sx=1-ei(k2);
+      const col=k1>.5?'#fff':WHITE;
+      partXY(c,WA,col,sx,sy,1);partXY(c,WB,col,sx,sy,1);partXY(c,BOLT,k1>.3?YEL:WHITE,sx,sy,1);partXY(c,MARK,WHITE,sx,sy,1);
+      if(k1>.8&&k2<1){c.fillStyle='#fff';c.globalAlpha=1-k2;c.fillRect(CX-HALF*sx,CY-1.5,276*sx,3);c.globalAlpha=1;}}
+    return;}
+}
+V.unshift({name:'Procedural: randomized compositions',desc:'Each cycle picks a different entrance, exit, hold length and glitch bursts. No repeats back to back.',own:true,
+ draw(c,e){
+   const st=this.st||(this.st={n:0,start:0});
+   while(e-st.start>=plan(st.n).total){st.start+=plan(st.n).total;st.n++;}
+   const p=plan(st.n),r=e-st.start;
+   procedural(c,r,p);
+   const cap=document.getElementById('cap');
+   if(cap)cap.textContent='cycle '+(st.n+1)+' · in: '+IN_NAMES[p.inKind]+' · hold '+(p.hold/1000).toFixed(1)+'s ('+p.bursts.map(b=>BURST_NAMES[b.type]).join(', ')+') · out: '+OUT_NAMES[p.outKind];
+ },cyc(){return 0}});
+V.splice(1); // keep only the procedural cycle
+const grid=document.getElementById('grid');
+V.forEach((v,i)=>{
+ const d=document.createElement('div');d.className='card';
+ d.innerHTML='<canvas width="320" height="240"></canvas><h2><span>'+(i+1)+'</span> · '+v.name+'</h2><p>'+v.desc+'</p><p id="cap" style="margin-top:8px;color:var(--fg);font-size:13px"></p>';
+ grid.appendChild(d);v.ctx=d.querySelector('canvas').getContext('2d');v.t0=performance.now();
+ d.onclick=()=>{PLANS.length=0;v.st=null;v.t0=performance.now();};
+});
+const INTRO=2400,FADE=500,BLACK=900;
+let SPEED=.6,HOLD=5;
+function tick(now){
+ CUR_L=INTRO+HOLD*1000+FADE;
+ for(const v of V){
+  if(v.own){v.draw(v.ctx,now-v.t0);continue;}
+  const intro=INTRO/SPEED, cycle=intro+HOLD*1000+FADE+BLACK;
+  const r=(now-v.t0)%cycle;
+  const t=r<intro?r*SPEED:INTRO+(r-intro);
+  const d=v.alt?v.alt[Math.floor((now-v.t0)/cycle)%2].draw:v.draw;d(v.ctx,Math.min(t,CUR_L+BLACK));}
+ requestAnimationFrame(tick);}
+const reset=()=>{PLANS.length=0;V.forEach(v=>{v.t0=performance.now();v.st=null;});};
+document.getElementById('spd').oninput=e=>{SPEED=+e.target.value;document.getElementById('spdv').textContent=SPEED.toFixed(2)+'x';reset();};
+document.getElementById('hold').oninput=e=>{HOLD=+e.target.value;document.getElementById('holdv').textContent=HOLD+'s';reset();};
+requestAnimationFrame(tick);
+</script></body></html>
