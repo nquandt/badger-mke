@@ -449,7 +449,7 @@ def draw_card(i, hint_a):
     screen.font = title_font
     put(fit(name, 292), 14, 176, W, face=title_font)
     put(fit(cat, 292, 14), 14, 205, W, .88, 14)
-    hint("< > browse     v QR", hint_a)
+    hint("< > browse     ^ v QR     SEL home", hint_a)
 
 
 def draw_qr(title, sub, url, tag):
@@ -470,12 +470,12 @@ def draw_contact_qr():
     handle = setting_or("CONTACT_LINKEDIN" if li else "GITHUB_USERNAME", "nquandt")
     url = ("https://www.linkedin.com/in/" if li else "https://github.com/") + handle
     draw_qr(setting_or("CONTACT_NAME", "Nicholas Quandt"), ROLE, url,
-            ("LinkedIn" if li else "GitHub") + " - " + handle + "     SELECT switches")
+            ("LinkedIn" if li else "GitHub") + " - " + handle + "     < > switch")
 
 
 def draw_product_qr(i):
     slug, name, cat, sku = PRODUCTS[i]
-    draw_qr(name, cat, "https://www.milwaukeetool.com/products/" + sku, "milwaukeetool.com/products/" + sku + "     BACK returns")
+    draw_qr(name, cat, "https://www.milwaukeetool.com/products/" + sku, "milwaukeetool.com/products/" + sku + "     SELECT closes")
 
 
 tilt_x = tilt_y = 0.0
@@ -518,7 +518,7 @@ def draw_level(hint_a):
     put_centred("%.1f" % ang, cy + rad + 12, W, face=title_font)
     put_centred("LEVEL" if level else "TILT", cy + rad + 42, W, .9, 12)
     logo_at(46, 17, 72, W)
-    hint("< > browse     SELECT zeroes", hint_a)
+    hint("< > browse     ^ zero     SEL home", hint_a)
 
 
 def draw_logo_screen(now, hint_a):
@@ -534,15 +534,8 @@ def draw_logo_screen(now, hint_a):
             current = make_plan(cycle, current)
             r = now - cycle_start
         draw(current, r)
-    age = now - impact_at
-    if 0 <= age < 700:               # Select: on-demand impact (shockwave + flash)
-        k = clamp(age / 700)
-        screen.pen = pen(W, 1 - k)
-        screen.shape(shape.stroke(shape.circle(CX, CY, age * .6), 5 * (1 - k) + .5))
-        if age < 300:
-            fill(W, .7 * (1 - age / 300))
     draw_icon(now)
-    hint("< > browse   v contact QR   ^ pause   o impact", hint_a)
+    hint("< > browse   v contact QR   ^ pause   SEL exit", hint_a)
 
 
 def draw_screen(idx, now, hint_a):
@@ -586,7 +579,6 @@ contact_qr = 0      # 0 = LinkedIn, 1 = GitHub
 trans = None        # (start_ms, target_idx)
 last_input = badge.ticks
 hint_until = 0
-impact_at = -10000
 
 
 def pressed(name):
@@ -594,7 +586,7 @@ def pressed(name):
 
 
 BUTTONS = {"up": BUTTON_UP, "down": BUTTON_DOWN, "left": BUTTON_LEFT, "right": BUTTON_RIGHT,
-           "select": BUTTON_SELECT, "back": BUTTON_BACK}
+           "select": BUTTON_SELECT}
 
 
 def start_logo(now):
@@ -636,34 +628,35 @@ def draw_icon(now):
 
 
 def handle_input(now):
-    global qr_open, contact_qr, impact_at, zero_x, zero_y, last_input, hint_until
+    """Five buttons: Up, Down, Left, Right, Select. Select doubles as back and, on the logo, exits."""
+    global qr_open, contact_qr, zero_x, zero_y, last_input, hint_until
     if any(pressed(n) for n in BUTTONS):
         last_input = now
         hint_until = now + HINT_MS
-    if pressed("left") and not qr_open:
-        go((screen_idx - 1) % SCREEN_COUNT, now)
-    elif pressed("right") and not qr_open:
-        go((screen_idx + 1) % SCREEN_COUNT, now)
-    elif pressed("down") and screen_idx != LEVEL:
-        qr_open = not qr_open
-        contact_qr = 0
-    elif pressed("select"):
-        if screen_idx == 0:
-            if qr_open:
-                contact_qr ^= 1
-            else:
-                impact_at = now
-        elif screen_idx == LEVEL:
-            zero_x, zero_y = tilt_x, tilt_y
-    elif pressed("up") and screen_idx == 0 and not qr_open:
-        toggle_pause(now)
-    elif pressed("back"):
+    if pressed("select"):
         if qr_open:
             qr_open = False
         elif screen_idx != 0:
             go(0, now)
         else:
             reset()
+    elif pressed("left") or pressed("right"):
+        step = -1 if pressed("left") else 1
+        if not qr_open:
+            go((screen_idx + step) % SCREEN_COUNT, now)
+        elif screen_idx == 0:
+            contact_qr ^= 1
+    elif pressed("down"):
+        if screen_idx != LEVEL:
+            qr_open = not qr_open
+            contact_qr = 0
+    elif pressed("up"):
+        if screen_idx == 0 and not qr_open:
+            toggle_pause(now)
+        elif screen_idx == LEVEL:
+            zero_x, zero_y = tilt_x, tilt_y
+        elif 1 <= screen_idx <= len(PRODUCTS):
+            qr_open = not qr_open
     elif screen_idx != 0 or qr_open:
         limit = IDLE_QR_MS if qr_open else IDLE_MS
         if now - last_input > limit:
