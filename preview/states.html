@@ -32,7 +32,7 @@ th{color:var(--mut);font-weight:600}kbd{background:#333;color:#fff;border-radius
 .sheet figcaption{font-size:13px;margin-top:6px}.sheet figcaption span{color:var(--mut)}
 .rec{border-left:4px solid var(--red)}
 </style></head><body>
-<header><h1>Badge UI states</h1><p>An interactive mockup of the proposed badge screens, with a contact sheet of every state below. Click the buttons or use the keyboard: arrow keys, <kbd>Enter</kbd> (Select), <kbd>Esc</kbd> (Back). Hero images, taglines and URLs are placeholders. Fonts here are system fonts; the badge uses its own.</p></header>
+<header><h1>Badge UI states</h1><p>An interactive mockup of the proposed badge screens, with a contact sheet of every state below. Click the buttons or use the keyboard: arrow keys, <kbd>Enter</kbd> (Select), <kbd>Esc</kbd> (Back). Product names, categories, images and QR links come from the real milwaukeetool.com product pages; the contact card values are placeholders. Fonts here are system fonts; the badge uses its own.</p></header>
 
 <section class="top">
  <div>
@@ -78,12 +78,8 @@ const LOGO=[[[57.8, -27.56, 58.05, -28.44, 58.68, -29.05, 59.56, -29.28, 60.44, 
 const W=320,H=240,FIT=240/LW,RED='#DB011C',WHITE='#fff',YEL='#FFD600';
 const P=LOGO.map(part=>{const p=new Path2D();for(const c of part){for(let i=0;i<c.length;i+=2)i?p.lineTo(c[i],c[i+1]):p.moveTo(c[i],c[i+1]);p.closePath();}return p;});
 const cl=v=>v<0?0:v>1?1:v,eo=t=>1-Math.pow(1-cl(t),3);
-const PRODUCTS=[
- {name:'Sawzall',cat:'Reciprocating saw',url:'https://www.milwaukeetool.com/'},
- {name:'Hole-Hawg',cat:'Right-angle drill',url:'https://www.milwaukeetool.com/'},
- {name:'M18 FUEL Impact Driver',cat:'Cordless impact driver',url:'https://www.milwaukeetool.com/'},
- {name:'PACKOUT',cat:'Modular storage system',url:'https://www.milwaukeetool.com/'},
- {name:'MX FUEL',cat:'Heavy-duty cordless equipment',url:'https://www.milwaukeetool.com/'}];
+const PRODUCTS=[{"slug": "sawzall", "name": "M18 FUEL SAWZALL", "cat": "Reciprocating saw", "url": "https://www.milwaukeetool.com/products/details/m18-fuel-sawzall-recip-saw-w-one-key-tool-only/2822-20"}, {"slug": "holehawg", "name": "M18 FUEL HOLE HAWG", "cat": "Right-angle drill", "url": "https://www.milwaukeetool.com/products/details/m18-fuel-hole-hawg-right-angle-drill-w-quik-lok-tool-only/2708-20"}, {"slug": "impact", "name": "M18 FUEL Impact Driver", "cat": "1/4\" hex impact driver", "url": "https://www.milwaukeetool.com/products/details/m18-fuel-1-4-hex-impact-driver/2953-20"}, {"slug": "packout", "name": "PACKOUT", "cat": "Rolling tool box", "url": "https://www.milwaukeetool.com/products/details/packout-rolling-tool-box/48-22-8426"}, {"slug": "mxfuel", "name": "MX FUEL", "cat": "Pipe threading machine", "url": "https://www.milwaukeetool.com/Products/Equipment/MXF512-2XC"}];
+const IMGS={};PRODUCTS.forEach(p=>{const im=new Image();im.src='../assets/products/'+p.slug+'.png';IMGS[p.slug]=im;});
 const SCREENS=[{t:'logo',label:'Logo (home)',sub:'animated; shown static here'},...PRODUCTS.map((p,i)=>({t:'card',i,label:'Card: '+p.name,sub:p.cat})),{t:'level',label:'Level',sub:'bubble level from the tilt sensor'}];
 const st={idx:0,qr:false,paused:false,iconUntil:0,iconKind:0,trans:null,hintUntil:0,flashAt:-1e9,tx:8,ty:-5};
 const now=()=>performance.now();
@@ -107,13 +103,15 @@ function drawLogo(c,t,hintA){
 }
 function drawCard(c,i,hintA){
   const p=PRODUCTS[i];c.fillStyle=RED;c.fillRect(0,0,W,H);
-  logo(c,{cx:48,cy:19,s:.3});
-  // hero panel placeholder
-  c.save();c.beginPath();c.roundRect(14,36,292,120,10);c.fillStyle='#fff';c.fill();c.clip();
-  c.strokeStyle='#e6e6e6';c.lineWidth=6;for(let x=-140;x<320;x+=22){c.beginPath();c.moveTo(x,156);c.lineTo(x+120,36);c.stroke();}
-  c.fillStyle='#8a8a8a';c.font='600 12px system-ui';c.textAlign='center';c.fillText('HERO IMAGE',160,92);c.font='11px system-ui';c.fillText('292 × 120 on a white panel',160,108);c.restore();
-  c.fillStyle='#fff';c.textAlign='left';c.font=fit(c,p.name,290,'800 24px system-ui');c.fillText(fit(c,p.name,290,'800 24px system-ui'),14,184);
-  c.globalAlpha=.88;c.font='14px system-ui';c.fillText(p.cat,14,205);c.globalAlpha=1;
+  logo(c,{cx:46,cy:17,s:.28});
+  // hero panel with the product image on white
+  c.save();c.beginPath();c.roundRect(14,34,292,142,10);c.fillStyle='#fff';c.fill();c.clip();
+  const im=IMGS[p.slug];
+  if(im&&im.complete&&im.naturalWidth){const k=Math.min(276/im.naturalWidth,130/im.naturalHeight,1.5);const w=im.naturalWidth*k,h=im.naturalHeight*k;c.drawImage(im,160-w/2,105-h/2,w,h);}
+  else{c.fillStyle='#8a8a8a';c.font='600 12px system-ui';c.textAlign='center';c.fillText('HERO IMAGE',160,105);}
+  c.restore();
+  c.fillStyle='#fff';c.textAlign='left';c.font='800 22px system-ui';c.fillText(fit(c,p.name,290,'800 22px system-ui'),14,200);
+  c.globalAlpha=.88;c.font='13px system-ui';c.fillText(p.cat,14,218);c.globalAlpha=1;
   // dots
   for(let k=0;k<PRODUCTS.length;k++){c.beginPath();c.arc(W-14-(PRODUCTS.length-1-k)*12,16,k===i?4:3,0,7);c.fillStyle='#fff';c.globalAlpha=k===i?1:.45;c.fill();}c.globalAlpha=1;
   hints(c,'◀ ▶ browse   ▼ QR',hintA);

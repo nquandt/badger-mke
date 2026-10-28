@@ -52,6 +52,19 @@ To preview, serve `preview/` (`python3 -m http.server`) and open it; the Speed/H
 `SPEED`/`HOLD_MS`. The preview seeds each cycle deterministically, while the badge uses the hardware RNG,
 so exact sequences differ.
 
+## Product images (not committed)
+
+`assets/products.json` lists the featured products, their milwaukeetool.com pages and hero image URLs.
+The photos are Milwaukee Tool's, so they are fetched on demand and gitignored:
+
+```bash
+python3 tools/fetch_product_images.py                       # -> assets/source/*.webp
+uv run --with pillow python tools/prep_images.py            # -> assets/products/*.png (badge-sized, cropped)
+python3 tools/gen_preview.py && python3 -m http.server      # open /preview/states.html (serve from the repo root)
+```
+
+`preview/states.html` is a mockup of the planned UI (product cards, QR screens, level); it is not on the badge yet.
+
 ## Badge notes
 
 - Serial port is `/dev/cu.usbmodem*`. Any `mpremote` connection interrupts the running menu and leaves the

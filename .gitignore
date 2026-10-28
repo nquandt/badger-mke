@@ -1,3 +1,7 @@
 .DS_Store
 __pycache__/
 *.pyc
+
+# Milwaukee product photography (trademarked; fetched by tools/fetch_product_images.py, not committed)
+assets/source/
+assets/products/
